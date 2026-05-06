@@ -33,6 +33,10 @@ DB_DATABASE=/absolute/path/to/database/database.sqlite
 
 Git の基本運用は [Git 運用手順書](docs/git-operation.md) にまとめています。
 
+## ロリポップ配備
+
+ロリポップ！ハイスピードプランへの公開手順は [ロリポップ！配備手順書](docs/lolipop-deploy.md) にまとめています。
+
 ## ロリポップ！ハイスピードプラン配備メモ
 
 1. ユーザー専用ページで対象ドメインの PHP を 8.3 または 8.4 に設定します。
