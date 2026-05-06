@@ -29,6 +29,10 @@ DB_CONNECTION=sqlite
 DB_DATABASE=/absolute/path/to/database/database.sqlite
 ```
 
+## Git 運用
+
+Git の基本運用は [Git 運用手順書](docs/git-operation.md) にまとめています。
+
 ## ロリポップ！ハイスピードプラン配備メモ
 
 1. ユーザー専用ページで対象ドメインの PHP を 8.3 または 8.4 に設定します。
