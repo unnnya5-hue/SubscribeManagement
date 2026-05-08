@@ -2,7 +2,19 @@
 
 このアプリを Xcode で実装する場合、現在の Laravel Web アプリをそのまま移植するのではなく、iPhone/iPad 向けの SwiftUI アプリとして作り、Laravel はデータ保存用の API バックエンドとして使う構成がおすすめです。
 
-## 結論
+## 現在の採用方針
+
+今回は選択肢2の「SwiftUI + SwiftData の完全ローカルアプリ」で進めます。Webアプリとは別で新規開発し、iPhone内にデータを保存します。
+
+実装中のプロジェクト:
+
+```text
+iOS/FitnessApp/FitnessApp.xcodeproj
+```
+
+詳細は [iOS ローカル保存アプリ](ios-local-app.md) にまとめています。
+
+## 参考: Web版とデータ共有する場合の構成
 
 おすすめ構成:
 

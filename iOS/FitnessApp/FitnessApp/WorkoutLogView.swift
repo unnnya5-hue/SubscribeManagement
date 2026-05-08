@@ -1,0 +1,193 @@
+import SwiftUI
+import SwiftData
+
+private struct DraftSet: Identifiable {
+    let id = UUID()
+    var movementName: String
+    var bodyPart: String
+    var setNumber: Int
+    var weight: Double
+    var reps: Int
+    var rpe: Double
+    var restSeconds: Int
+
+    var oneRepMax: Double {
+        (weight * (1 + Double(reps) / 30)).rounded(toPlaces: 1)
+    }
+}
+
+struct WorkoutLogView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Movement.sortOrder) private var movements: [Movement]
+    @Query(sort: \WorkoutSession.date, order: .reverse) private var workouts: [WorkoutSession]
+
+    @State private var selectedMovement: Movement?
+    @State private var weight = 40.0
+    @State private var reps = 10
+    @State private var rpe = 8.0
+    @State private var restSeconds = 90
+    @State private var draftSets: [DraftSet] = []
+    @State private var note = ""
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    inputPanel
+                    currentSession
+                    history
+                }
+                .padding()
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("記録")
+            .onAppear {
+                if selectedMovement == nil {
+                    select(movements.first)
+                }
+            }
+        }
+    }
+
+    private var inputPanel: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeader("セットを追加", subtitle: "入力して追加、最後にまとめて保存します。")
+
+            Picker("種目", selection: Binding(
+                get: { selectedMovement?.persistentModelID },
+                set: { id in select(movements.first { $0.persistentModelID == id }) }
+            )) {
+                ForEach(movements) { movement in
+                    Text(movement.name).tag(Optional(movement.persistentModelID))
+                }
+            }
+            .pickerStyle(.menu)
+
+            VStack(spacing: 14) {
+                HStack {
+                    Text("重量")
+                    Spacer()
+                    Text(weight.kgText).monospacedDigit().foregroundStyle(.secondary)
+                }
+                Slider(value: $weight, in: 0...200, step: 2.5)
+
+                Stepper("回数 \(reps)", value: $reps, in: 1...50)
+                Stepper("RPE \(rpe.formatted(.number.precision(.fractionLength(1))))", value: $rpe, in: 1...10, step: 0.5)
+                Stepper("休憩 \(restSeconds)秒", value: $restSeconds, in: 0...300, step: 15)
+            }
+
+            Button {
+                addSet()
+            } label: {
+                Label("セットを追加", systemImage: "plus.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(selectedMovement == nil)
+        }
+        .padding(18)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var currentSession: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHeader("現在のセッション", subtitle: draftSets.isEmpty ? "まだセットがありません。" : "\(draftSets.count)セット入力中")
+
+            if draftSets.isEmpty {
+                EmptyStateView(symbol: "plus.rectangle.on.rectangle", title: "セットを追加", message: "今日のトレーニングを1セットずつ積み上げます。")
+                    .frame(minHeight: 160)
+            } else {
+                ForEach(draftSets) { set in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(set.movementName)
+                                .font(.headline)
+                            Text("\(set.setNumber)セット目 / RPE \(set.rpe.formatted(.number.precision(.fractionLength(1)))) / 1RM \(set.oneRepMax.kgText)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text("\(set.weight.kgText) x \(set.reps)")
+                            .font(.subheadline.monospacedDigit())
+                    }
+                    .padding(14)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                TextField("メモ", text: $note, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                Button {
+                    saveWorkout()
+                } label: {
+                    Label("ワークアウトを保存", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.teal)
+            }
+        }
+    }
+
+    private var history: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader("履歴")
+            ForEach(workouts.prefix(8)) { workout in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(workout.title).font(.headline)
+                        Spacer()
+                        Text(workout.totalVolume.kgText)
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("\(workout.date.shortJapaneseDate) / \(workout.sets.count)セット")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+
+    private func select(_ movement: Movement?) {
+        selectedMovement = movement
+        guard let movement else { return }
+        weight = movement.defaultWeight
+        reps = movement.targetReps
+    }
+
+    private func addSet() {
+        guard let movement = selectedMovement else { return }
+        let nextNumber = draftSets.filter { $0.movementName == movement.name }.count + 1
+        draftSets.append(DraftSet(
+            movementName: movement.name,
+            bodyPart: movement.bodyPart,
+            setNumber: nextNumber,
+            weight: weight,
+            reps: reps,
+            rpe: rpe,
+            restSeconds: restSeconds
+        ))
+    }
+
+    private func saveWorkout() {
+        let title = draftSets.first?.movementName ?? "ワークアウト"
+        let sets = draftSets.map {
+            TrainingSet(
+                movementName: $0.movementName,
+                bodyPart: $0.bodyPart,
+                setNumber: $0.setNumber,
+                weight: $0.weight,
+                reps: $0.reps,
+                rpe: $0.rpe,
+                restSeconds: $0.restSeconds
+            )
+        }
+        modelContext.insert(WorkoutSession(title: title, note: note, sets: sets))
+        try? modelContext.save()
+        draftSets = []
+        note = ""
+    }
+}
