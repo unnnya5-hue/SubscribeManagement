@@ -151,17 +151,18 @@ struct BodyLogView: View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader("記録を追加")
             DatePicker("日付", selection: $date, displayedComponents: .date)
-            HStack {
+            HStack(spacing: 12) {
                 Text("体重")
+                    .font(.headline)
                 Spacer()
-                Text(weight.kgText).monospacedDigit().foregroundStyle(.secondary)
-            }
-            HStack {
                 TextField("65.0", value: $weight, format: .number.precision(.fractionLength(0...1)))
                     .keyboardType(.decimalPad)
-                    .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.trailing)
-                    .font(.title3.monospacedDigit())
+                    .font(.system(.title3, design: .rounded, weight: .semibold).monospacedDigit())
+                    .frame(width: 110)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 Text("kg")
                     .font(.headline)
                     .foregroundStyle(.secondary)
