@@ -19,6 +19,8 @@ struct BodyLogView: View {
     @State private var bodyFat = 18.0
     @State private var usesBodyFat = true
     @State private var note = ""
+    @State private var bodyEntryPendingDeletion: BodyEntry?
+    @State private var isShowingDeleteConfirmation = false
 
     private var chartEntries: [BodyEntry] {
         Array(entries.prefix(90)).reversed()
@@ -50,6 +52,20 @@ struct BodyLogView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("身体")
+            .confirmationDialog(
+                "この身体記録を削除しますか？",
+                isPresented: $isShowingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("削除", role: .destructive) {
+                    deletePendingBodyEntry()
+                }
+                Button("キャンセル", role: .cancel) {
+                    bodyEntryPendingDeletion = nil
+                }
+            } message: {
+                Text("削除した記録は元に戻せません。")
+            }
         }
     }
 
@@ -140,6 +156,16 @@ struct BodyLogView: View {
                 Spacer()
                 Text(weight.kgText).monospacedDigit().foregroundStyle(.secondary)
             }
+            HStack {
+                TextField("65.0", value: $weight, format: .number.precision(.fractionLength(0...1)))
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.trailing)
+                    .font(.title3.monospacedDigit())
+                Text("kg")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
             Slider(value: $weight, in: 30...140, step: 0.1)
             Toggle("体脂肪率を入力", isOn: $usesBodyFat)
             if usesBodyFat {
@@ -183,6 +209,15 @@ struct BodyLogView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    Button(role: .destructive) {
+                        bodyEntryPendingDeletion = entry
+                        isShowingDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("身体記録を削除")
                 }
                 .padding(14)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -194,6 +229,13 @@ struct BodyLogView: View {
         modelContext.insert(BodyEntry(date: date, weight: weight, bodyFat: usesBodyFat ? bodyFat : nil, note: note))
         try? modelContext.save()
         note = ""
+    }
+
+    private func deletePendingBodyEntry() {
+        guard let bodyEntryPendingDeletion else { return }
+        modelContext.delete(bodyEntryPendingDeletion)
+        try? modelContext.save()
+        self.bodyEntryPendingDeletion = nil
     }
 
     private func paddedDomain(for values: [Double], minimumPadding: Double) -> ClosedRange<Double> {

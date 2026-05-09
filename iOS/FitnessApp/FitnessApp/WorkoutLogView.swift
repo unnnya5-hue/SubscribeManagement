@@ -28,6 +28,8 @@ struct WorkoutLogView: View {
     @State private var restSeconds = 90
     @State private var draftSets: [DraftSet] = []
     @State private var note = ""
+    @State private var workoutPendingDeletion: WorkoutSession?
+    @State private var isShowingDeleteConfirmation = false
     @FocusState private var isNoteFocused: Bool
 
     var body: some View {
@@ -56,6 +58,20 @@ struct WorkoutLogView: View {
                 if selectedMovement == nil {
                     select(movements.first)
                 }
+            }
+            .confirmationDialog(
+                "このワークアウト記録を削除しますか？",
+                isPresented: $isShowingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("削除", role: .destructive) {
+                    deletePendingWorkout()
+                }
+                Button("キャンセル", role: .cancel) {
+                    workoutPendingDeletion = nil
+                }
+            } message: {
+                Text("削除した記録は元に戻せません。")
             }
         }
     }
@@ -175,11 +191,21 @@ struct WorkoutLogView: View {
             ForEach(workouts.prefix(8)) { workout in
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text(workout.title).font(.headline)
+                        Text(workout.title)
+                            .font(.headline)
                         Spacer()
                         Text(workout.totalVolume.kgText)
                             .font(.subheadline.monospacedDigit())
                             .foregroundStyle(.secondary)
+                        Button(role: .destructive) {
+                            workoutPendingDeletion = workout
+                            isShowingDeleteConfirmation = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("ワークアウト記録を削除")
                     }
                     Text("\(workout.date.shortJapaneseDate) / \(workout.sets.count)セット")
                         .font(.caption)
@@ -238,5 +264,12 @@ struct WorkoutLogView: View {
         draftSets = []
         note = ""
         isNoteFocused = false
+    }
+
+    private func deletePendingWorkout() {
+        guard let workoutPendingDeletion else { return }
+        modelContext.delete(workoutPendingDeletion)
+        try? modelContext.save()
+        self.workoutPendingDeletion = nil
     }
 }
