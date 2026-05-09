@@ -69,6 +69,28 @@ struct SectionHeader: View {
     }
 }
 
+struct SaveConfirmationBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3)
+                .foregroundStyle(.white)
+            Text(message)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(.teal.gradient, in: Capsule())
+        .shadow(color: .teal.opacity(0.28), radius: 18, x: 0, y: 10)
+        .padding(.horizontal)
+        .padding(.bottom, 18)
+    }
+}
+
 extension Date {
     var shortJapaneseDate: String {
         formatted(.dateTime.month(.defaultDigits).day().weekday(.abbreviated).locale(Locale(identifier: "ja_JP")))

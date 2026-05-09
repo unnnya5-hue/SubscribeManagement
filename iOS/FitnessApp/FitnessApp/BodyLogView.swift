@@ -21,6 +21,7 @@ struct BodyLogView: View {
     @State private var note = ""
     @State private var bodyEntryPendingDeletion: BodyEntry?
     @State private var isShowingDeleteConfirmation = false
+    @State private var saveMessage: String?
     @FocusState private var isNoteFocused: Bool
 
     private var chartEntries: [BodyEntry] {
@@ -41,15 +42,21 @@ struct BodyLogView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    summary
-                    chart
-                    form
-                    history
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        summary
+                        chart
+                        form
+                        history
+                    }
+                    .padding()
+                    .safeAreaPadding(.bottom, saveMessage == nil ? 96 : 148)
                 }
-                .padding()
-                .safeAreaPadding(.bottom, 96)
+                if let saveMessage {
+                    SaveConfirmationBanner(message: saveMessage)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("身体")
@@ -272,6 +279,7 @@ struct BodyLogView: View {
         try? modelContext.save()
         note = ""
         isNoteFocused = false
+        showSaved("身体データを保存しました")
     }
 
     private func deletePendingBodyEntry() {
@@ -279,6 +287,19 @@ struct BodyLogView: View {
         modelContext.delete(bodyEntryPendingDeletion)
         try? modelContext.save()
         self.bodyEntryPendingDeletion = nil
+    }
+
+    private func showSaved(_ message: String) {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+            saveMessage = message
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.22)) {
+                saveMessage = nil
+            }
+        }
     }
 
     private func paddedDomain(for values: [Double], minimumPadding: Double) -> ClosedRange<Double> {

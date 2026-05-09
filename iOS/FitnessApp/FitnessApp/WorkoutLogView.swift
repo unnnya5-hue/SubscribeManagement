@@ -30,17 +30,25 @@ struct WorkoutLogView: View {
     @State private var note = ""
     @State private var workoutPendingDeletion: WorkoutSession?
     @State private var isShowingDeleteConfirmation = false
+    @State private var saveMessage: String?
     @FocusState private var isNoteFocused: Bool
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    inputPanel
-                    currentSession
-                    history
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        inputPanel
+                        currentSession
+                        history
+                    }
+                    .padding()
+                    .safeAreaPadding(.bottom, saveMessage == nil ? 24 : 92)
                 }
-                .padding()
+                if let saveMessage {
+                    SaveConfirmationBanner(message: saveMessage)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("記録")
@@ -264,6 +272,7 @@ struct WorkoutLogView: View {
         draftSets = []
         note = ""
         isNoteFocused = false
+        showSaved("ワークアウトを保存しました")
     }
 
     private func deletePendingWorkout() {
@@ -271,5 +280,18 @@ struct WorkoutLogView: View {
         modelContext.delete(workoutPendingDeletion)
         try? modelContext.save()
         self.workoutPendingDeletion = nil
+    }
+
+    private func showSaved(_ message: String) {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+            saveMessage = message
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.22)) {
+                saveMessage = nil
+            }
+        }
     }
 }
