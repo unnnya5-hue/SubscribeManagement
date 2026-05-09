@@ -2,10 +2,18 @@ import SwiftUI
 import SwiftData
 import Charts
 
+private enum BodyChartMetric: String, CaseIterable, Identifiable {
+    case weight = "体重"
+    case bodyFat = "体脂肪率"
+
+    var id: String { rawValue }
+}
+
 struct BodyLogView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \BodyEntry.date, order: .reverse) private var entries: [BodyEntry]
 
+    @State private var selectedMetric: BodyChartMetric = .weight
     @State private var date = Date()
     @State private var weight = 65.0
     @State private var bodyFat = 18.0
@@ -14,6 +22,18 @@ struct BodyLogView: View {
 
     private var chartEntries: [BodyEntry] {
         Array(entries.prefix(90)).reversed()
+    }
+
+    private var bodyFatChartEntries: [BodyEntry] {
+        chartEntries.filter { $0.bodyFat != nil }
+    }
+
+    private var weightDomain: ClosedRange<Double> {
+        paddedDomain(for: chartEntries.map(\.weight), minimumPadding: 2)
+    }
+
+    private var bodyFatDomain: ClosedRange<Double> {
+        paddedDomain(for: bodyFatChartEntries.compactMap(\.bodyFat), minimumPadding: 1)
     }
 
     var body: some View {
@@ -26,6 +46,7 @@ struct BodyLogView: View {
                     history
                 }
                 .padding()
+                .safeAreaPadding(.bottom, 96)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("身体")
@@ -42,28 +63,72 @@ struct BodyLogView: View {
     private var chart: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader("90日推移")
+            Picker("表示", selection: $selectedMetric) {
+                ForEach(BodyChartMetric.allCases) { metric in
+                    Text(metric.rawValue).tag(metric)
+                }
+            }
+            .pickerStyle(.segmented)
+
             if chartEntries.isEmpty {
                 EmptyStateView(symbol: "chart.xyaxis.line", title: "まだグラフはありません", message: "身体データを1件登録すると表示されます。")
                     .frame(minHeight: 200)
             } else {
-                Chart(chartEntries) { entry in
-                    LineMark(
-                        x: .value("日付", entry.date),
-                        y: .value("体重", entry.weight)
-                    )
-                    .foregroundStyle(.teal)
-                    PointMark(
-                        x: .value("日付", entry.date),
-                        y: .value("体重", entry.weight)
-                    )
-                    .foregroundStyle(.teal)
+                switch selectedMetric {
+                case .weight:
+                    weightChart
+                case .bodyFat:
+                    if bodyFatChartEntries.isEmpty {
+                        EmptyStateView(symbol: "percent", title: "体脂肪率の記録がありません", message: "体脂肪率をONにして保存すると推移が表示されます。")
+                            .frame(minHeight: 220)
+                    } else {
+                        bodyFatChart
+                    }
                 }
-                .frame(height: 220)
-                .chartYAxisLabel("kg")
             }
         }
         .padding(18)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var weightChart: some View {
+        Chart(chartEntries) { entry in
+            LineMark(
+                x: .value("日付", entry.date),
+                y: .value("体重", entry.weight)
+            )
+            .foregroundStyle(.teal)
+            .interpolationMethod(.catmullRom)
+            PointMark(
+                x: .value("日付", entry.date),
+                y: .value("体重", entry.weight)
+            )
+            .foregroundStyle(.teal)
+        }
+        .frame(height: 220)
+        .chartYScale(domain: weightDomain)
+        .chartYAxisLabel("kg")
+    }
+
+    private var bodyFatChart: some View {
+        Chart(bodyFatChartEntries) { entry in
+            if let bodyFat = entry.bodyFat {
+                LineMark(
+                    x: .value("日付", entry.date),
+                    y: .value("体脂肪率", bodyFat)
+                )
+                .foregroundStyle(.purple)
+                .interpolationMethod(.catmullRom)
+                PointMark(
+                    x: .value("日付", entry.date),
+                    y: .value("体脂肪率", bodyFat)
+                )
+                .foregroundStyle(.purple)
+            }
+        }
+        .frame(height: 220)
+        .chartYScale(domain: bodyFatDomain)
+        .chartYAxisLabel("%")
     }
 
     private var form: some View {
@@ -129,5 +194,17 @@ struct BodyLogView: View {
         modelContext.insert(BodyEntry(date: date, weight: weight, bodyFat: usesBodyFat ? bodyFat : nil, note: note))
         try? modelContext.save()
         note = ""
+    }
+
+    private func paddedDomain(for values: [Double], minimumPadding: Double) -> ClosedRange<Double> {
+        guard let minimum = values.min(), let maximum = values.max() else {
+            return 0...100
+        }
+
+        let padding = max((maximum - minimum) * 0.2, minimumPadding)
+        let lower = max(0, minimum - padding)
+        let upper = maximum + padding
+
+        return lower...upper
     }
 }
