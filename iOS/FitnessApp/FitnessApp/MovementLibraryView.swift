@@ -10,6 +10,7 @@ struct MovementLibraryView: View {
     @State private var defaultWeight = 40.0
     @State private var targetSets = 3
     @State private var targetReps = 10
+    @FocusState private var isDefaultWeightFocused: Bool
 
     private let bodyParts = ["胸", "背中", "脚", "肩", "腕", "体幹", "有酸素", "その他"]
 
@@ -47,6 +48,16 @@ struct MovementLibraryView: View {
                 }
             }
             .navigationTitle("種目")
+            .toolbar {
+                if isDefaultWeightFocused {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("完了") {
+                            isDefaultWeightFocused = false
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -59,10 +70,22 @@ struct MovementLibraryView: View {
                     Text(part).tag(part)
                 }
             }
-            HStack {
+            HStack(spacing: 12) {
                 Text("標準重量")
+                    .font(.headline)
                 Spacer()
-                Text(defaultWeight.kgText).monospacedDigit().foregroundStyle(.secondary)
+                TextField("40.0", value: $defaultWeight, format: .number.precision(.fractionLength(0...1)))
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(.system(.title3, design: .rounded, weight: .semibold).monospacedDigit())
+                    .focused($isDefaultWeightFocused)
+                    .frame(width: 110)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Text("kg")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
             }
             Slider(value: $defaultWeight, in: 0...200, step: 2.5)
             Stepper("セット数 \(targetSets)", value: $targetSets, in: 1...10)

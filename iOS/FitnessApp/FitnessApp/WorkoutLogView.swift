@@ -32,6 +32,7 @@ struct WorkoutLogView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var saveMessage: String?
     @FocusState private var isNoteFocused: Bool
+    @FocusState private var isWeightFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -54,11 +55,12 @@ struct WorkoutLogView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("記録")
             .toolbar {
-                if isNoteFocused {
+                if isNoteFocused || isWeightFocused {
                     ToolbarItemGroup(placement: .keyboard) {
                         Spacer()
                         Button("完了") {
                             isNoteFocused = false
+                            isWeightFocused = false
                         }
                     }
                 }
@@ -100,10 +102,22 @@ struct WorkoutLogView: View {
             .pickerStyle(.menu)
 
             VStack(spacing: 14) {
-                HStack {
+                HStack(spacing: 12) {
                     Text("重量")
+                        .font(.headline)
                     Spacer()
-                    Text(weight.kgText).monospacedDigit().foregroundStyle(.secondary)
+                    TextField("40.0", value: $weight, format: .number.precision(.fractionLength(0...1)))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .font(.system(.title3, design: .rounded, weight: .semibold).monospacedDigit())
+                        .focused($isWeightFocused)
+                        .frame(width: 110)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text("kg")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
                 }
                 Slider(value: $weight, in: 0...200, step: 2.5)
 
