@@ -21,6 +21,7 @@ struct BodyLogView: View {
     @State private var note = ""
     @State private var bodyEntryPendingDeletion: BodyEntry?
     @State private var isShowingDeleteConfirmation = false
+    @FocusState private var isNoteFocused: Bool
 
     private var chartEntries: [BodyEntry] {
         Array(entries.prefix(90)).reversed()
@@ -52,6 +53,16 @@ struct BodyLogView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("身体")
+            .toolbar {
+                if isNoteFocused {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("完了") {
+                            isNoteFocused = false
+                        }
+                    }
+                }
+            }
             .confirmationDialog(
                 "この身体記録を削除しますか？",
                 isPresented: $isShowingDeleteConfirmation,
@@ -172,8 +183,7 @@ struct BodyLogView: View {
             if usesBodyFat {
                 Stepper("体脂肪率 \(bodyFat.formatted(.number.precision(.fractionLength(1))))%", value: $bodyFat, in: 3...60, step: 0.1)
             }
-            TextField("メモ", text: $note, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
+            noteEditor
             Button {
                 addEntry()
             } label: {
@@ -186,6 +196,36 @@ struct BodyLogView: View {
         }
         .padding(18)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var noteEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("メモ")
+                .font(.subheadline.weight(.semibold))
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(.tertiarySystemGroupedBackground))
+                if note.isEmpty {
+                    Text("測定タイミング、食事、体調など")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                }
+                TextEditor(text: $note)
+                    .focused($isNoteFocused)
+                    .frame(minHeight: 88)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isNoteFocused ? Color.indigo.opacity(0.8) : Color.secondary.opacity(0.18), lineWidth: 1)
+            )
+            Text(note.isEmpty ? "メモ未入力" : "\(note.count)文字入力中")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var history: some View {
@@ -227,9 +267,11 @@ struct BodyLogView: View {
     }
 
     private func addEntry() {
-        modelContext.insert(BodyEntry(date: date, weight: weight, bodyFat: usesBodyFat ? bodyFat : nil, note: note))
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        modelContext.insert(BodyEntry(date: date, weight: weight, bodyFat: usesBodyFat ? bodyFat : nil, note: trimmedNote))
         try? modelContext.save()
         note = ""
+        isNoteFocused = false
     }
 
     private func deletePendingBodyEntry() {
