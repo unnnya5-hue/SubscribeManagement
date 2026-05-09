@@ -28,6 +28,7 @@ struct WorkoutLogView: View {
     @State private var restSeconds = 90
     @State private var draftSets: [DraftSet] = []
     @State private var note = ""
+    @FocusState private var isNoteFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -41,6 +42,16 @@ struct WorkoutLogView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("記録")
+            .toolbar {
+                if isNoteFocused {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("完了") {
+                            isNoteFocused = false
+                        }
+                    }
+                }
+            }
             .onAppear {
                 if selectedMovement == nil {
                     select(movements.first)
@@ -114,8 +125,7 @@ struct WorkoutLogView: View {
                     .padding(14)
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                TextField("メモ", text: $note, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
+                noteEditor
                 Button {
                     saveWorkout()
                 } label: {
@@ -126,6 +136,36 @@ struct WorkoutLogView: View {
                 .controlSize(.large)
                 .tint(.teal)
             }
+        }
+    }
+
+    private var noteEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("メモ")
+                .font(.subheadline.weight(.semibold))
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(.tertiarySystemGroupedBackground))
+                if note.isEmpty {
+                    Text("気づいたこと、痛み、フォームの感覚など")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                }
+                TextEditor(text: $note)
+                    .focused($isNoteFocused)
+                    .frame(minHeight: 88)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isNoteFocused ? Color.indigo.opacity(0.8) : Color.secondary.opacity(0.18), lineWidth: 1)
+            )
+            Text(note.isEmpty ? "メモ未入力" : "\(note.count)文字入力中")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -144,6 +184,13 @@ struct WorkoutLogView: View {
                     Text("\(workout.date.shortJapaneseDate) / \(workout.sets.count)セット")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if !workout.note.isEmpty {
+                        Text(workout.note)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(3)
+                            .padding(.top, 2)
+                    }
                 }
                 .padding(14)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -174,6 +221,7 @@ struct WorkoutLogView: View {
 
     private func saveWorkout() {
         let title = draftSets.first?.movementName ?? "ワークアウト"
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let sets = draftSets.map {
             TrainingSet(
                 movementName: $0.movementName,
@@ -185,9 +233,10 @@ struct WorkoutLogView: View {
                 restSeconds: $0.restSeconds
             )
         }
-        modelContext.insert(WorkoutSession(title: title, note: note, sets: sets))
+        modelContext.insert(WorkoutSession(title: title, note: trimmedNote, sets: sets))
         try? modelContext.save()
         draftSets = []
         note = ""
+        isNoteFocused = false
     }
 }
