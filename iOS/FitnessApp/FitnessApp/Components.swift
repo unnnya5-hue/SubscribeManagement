@@ -87,7 +87,7 @@ struct SaveConfirmationBanner: View {
         .background(.teal.gradient, in: Capsule())
         .shadow(color: .teal.opacity(0.28), radius: 18, x: 0, y: 10)
         .padding(.horizontal)
-        .padding(.bottom, 18)
+        .padding(.top, 8)
     }
 }
 

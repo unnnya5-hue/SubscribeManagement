@@ -35,7 +35,7 @@ struct WorkoutLogView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            ZStack(alignment: .top) {
                 ScrollView {
                     VStack(spacing: 20) {
                         inputPanel
@@ -43,11 +43,12 @@ struct WorkoutLogView: View {
                         history
                     }
                     .padding()
-                    .safeAreaPadding(.bottom, saveMessage == nil ? 24 : 92)
+                    .safeAreaPadding(.top, saveMessage == nil ? 0 : 64)
+                    .safeAreaPadding(.bottom, 24)
                 }
                 if let saveMessage {
                     SaveConfirmationBanner(message: saveMessage)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .background(Color(.systemGroupedBackground))

@@ -42,7 +42,7 @@ struct BodyLogView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            ZStack(alignment: .top) {
                 ScrollView {
                     VStack(spacing: 20) {
                         summary
@@ -51,11 +51,12 @@ struct BodyLogView: View {
                         history
                     }
                     .padding()
-                    .safeAreaPadding(.bottom, saveMessage == nil ? 96 : 148)
+                    .safeAreaPadding(.top, saveMessage == nil ? 0 : 64)
+                    .safeAreaPadding(.bottom, 96)
                 }
                 if let saveMessage {
                     SaveConfirmationBanner(message: saveMessage)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .background(Color(.systemGroupedBackground))
