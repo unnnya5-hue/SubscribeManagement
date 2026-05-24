@@ -1,0 +1,8 @@
+# AdMobで表示されるapp-ads.txtの行を、Publisher ID確定後にここへ貼り付けます。
+# 例:
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+#
+# 注意:
+# GitHub Pagesのプロジェクトサイトを使う場合、AdMobが確認するapp-ads.txtは
+# https://unnnya5-hue.github.io/app-ads.txt になる可能性があります。
+# その場合は、このリポジトリではなく unnnya5-hue.github.io のユーザーサイト側に配置してください。
