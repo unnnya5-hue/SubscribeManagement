@@ -1,69 +1,67 @@
-# 筋トレ管理アプリ
+# サブスク管理くん
 
-要件定義書「筋トレ管理アプリ 要件定義書 v1.0」をもとにした Laravel 11 製の Web アプリです。ロリポップ！ハイスピードプランでの運用を想定し、Node ビルド必須にせず、Blade + CDN Tailwind + Alpine.js + Chart.js で構成しています。
+サブスクリプションの支払い日、月額換算、年額換算、カテゴリ別の支出をまとめて管理する iOS アプリです。
 
-## 実装済み
+SwiftUI / SwiftData を中心に、WidgetKit、StoreKit 2、Google Mobile Ads SDK を組み合わせています。データは端末内に保存し、ログインなしで使える構成です。
 
-- ユーザー登録、ログイン、ログアウト、プロフィール編集
-- マシン管理、プリセット選択、マシンごとの種目管理
-- メニュー管理、種目/セット/回数/重量設定、難易度別の重量提案
-- 曜日別スケジュール、パターン有効化
-- ワークアウト開始、セット記録、前回記録参照、推定1RM
-- 身体データ記録、同日重複防止、90日グラフ
-- 分析グラフ、月間カレンダー、ダッシュボード
+## 主な機能
 
-## ローカル起動
+- サブスクの登録、編集、削除
+- 月額換算、年額換算、次回支払日の自動計算
+- カテゴリ別の支出集計
+- 次の支払い一覧と通知
+- ホーム画面ウィジェット
+- JSON エクスポート / インポート
+- プレミアム購入による広告非表示と追加機能解放
+- サポートページ、プライバシーポリシー、app-ads.txt の公開
 
-```bash
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate:fresh --seed
-php artisan serve
-```
+## ディレクトリ構成
 
-ローカルで SQLite を使う場合は `.env` を次のように変更します。
+- `iOS/SubKun/` - iOSアプリ本体
+- `docs/` - GitHub Pages用のサポートページ、プライバシーポリシー、提出準備資料
+- `docs/app-store-assets/` - App Store Connect用画像
+- `docs/app-store-screenshots/` - App Store Connect用スクリーンショット
 
-```env
-DB_CONNECTION=sqlite
-DB_DATABASE=/absolute/path/to/database/database.sqlite
-```
+## ローカルビルド
 
-## Git 運用
-
-Git の基本運用は [Git 運用手順書](docs/git-operation.md) にまとめています。
-
-## ロリポップ配備
-
-ロリポップ！ハイスピードプランへの公開手順は [ロリポップ！配備手順書](docs/lolipop-deploy.md) にまとめています。
-
-## Xcode 実装
-
-Xcode / SwiftUI でiPhoneアプリ化する方針は [Xcode 実装方針](docs/xcode-implementation-plan.md) にまとめています。
-
-iPhone内にデータ保存する新規アプリは [iOS ローカル保存アプリ](docs/ios-local-app.md) にまとめています。
-
-## ロリポップ！ハイスピードプラン配備メモ
-
-1. ユーザー専用ページで対象ドメインの PHP を 8.3 または 8.4 に設定します。
-2. MySQL データベースを作成し、`.env` の `DB_*` にホスト名、DB名、ユーザー名、パスワードを設定します。
-3. サーバーへプロジェクトをアップロードします。
-4. ドメインの公開フォルダは Laravel の `public` ディレクトリを向けます。
-5. SSH が使える場合はサーバー側で以下を実行します。
+Xcodeで開く場合:
 
 ```bash
-composer install --no-dev --optimize-autoloader
-php artisan key:generate
-php artisan migrate --seed --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+open iOS/SubKun/SubKun.xcodeproj
 ```
 
-SSH で Composer を使わない場合は、ローカルで `composer install --no-dev --optimize-autoloader` 済みの `vendor` を含めてアップロードします。
+コマンドラインでビルド確認する場合:
 
-## 注意
+```bash
+xcodebuild \
+  -project iOS/SubKun/SubKun.xcodeproj \
+  -scheme SubKun \
+  -destination 'generic/platform=iOS' \
+  -derivedDataPath /private/tmp/SubKunDerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
 
-- 現在のローカル PHP 8.5 では、Laravel 11 の vendor 側設定から `PDO::MYSQL_ATTR_SSL_CA` の deprecation が表示される場合があります。ロリポップ！公式情報上の PHP 8.3/8.4 運用では実害のない警告です。
-- Tailwind は CDN 版を使っています。本格的に公開する段階で表示速度を詰めるなら、Vite ビルド構成に戻す余地があります。
-- データ共有、CSVインポート/エクスポート、通知、Health連携は未実装の拡張候補です。
+## App Store提出関連
+
+- 提出時の入力内容: `docs/subkun-app-store-submission.md`
+- リリース作業の流れ: `docs/subkun-release-flow.md`
+- StoreKitテスト手順: `docs/subkun-storekit-testing.md`
+
+## AdMob / app-ads.txt
+
+AdMob確認用の `app-ads.txt` は以下の内容です。
+
+```txt
+google.com, pub-6961277874965643, DIRECT, f08c47fec0942fa0
+```
+
+GitHub Pagesのプロジェクトページでは `docs/app-ads.txt` が `https://unnnya5-hue.github.io/SubscribeManagement/app-ads.txt` に公開されます。
+
+AdMobはApp Storeに設定したDeveloper Websiteのホスト名直下も確認するため、ユーザーサイト側の `https://unnnya5-hue.github.io/app-ads.txt` にも同じ内容を配置します。
+
+## 公開ページ
+
+- サポート: https://unnnya5-hue.github.io/SubscribeManagement/support.html
+- プライバシーポリシー: https://unnnya5-hue.github.io/SubscribeManagement/privacy.html
+- トップページ: https://unnnya5-hue.github.io/SubscribeManagement/
